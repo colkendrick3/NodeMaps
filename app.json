@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "NodeMap",
+    "slug": "nodemap",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "NodeMap uses your location, on-device only, to alert you when you're near a publicly-mapped camera node. Your location is never sent to a server."
+      }
+    },
+    "android": {
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "NodeMap uses your location, on-device only, to alert you when you're near a publicly-mapped camera node. Your location is never sent to a server."
+        }
+      ]
+    ]
+  }
+}
