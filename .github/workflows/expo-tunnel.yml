@@ -2,9 +2,10 @@ name: Expo Tunnel Preview
 
 # Manually run this from the Actions tab to get an exp:// URL for Expo Go
 # without needing a local machine or a Codespace terminal. The job starts
-# `expo start --tunnel`, prints the resulting exp:// URL to the log, then
-# keeps the tunnel open for the requested duration so Expo Go can keep
-# fetching the bundle while you're using the app.
+# `expo start --tunnel`, then reads the resulting exp:// address from the
+# dev server's own manifest (Expo suppresses its normal QR/URL banner in
+# CI, so we can't just grep the log for it), and keeps the tunnel open
+# for the requested duration so Expo Go can keep fetching the bundle.
 
 on:
   workflow_dispatch:
@@ -48,9 +49,13 @@ jobs:
           echo "Waiting for the tunnel to come up..."
           url=""
           for _ in $(seq 1 60); do
-            if grep -q "exp://" expo.log; then
-              url=$(grep -m1 -o 'exp://[^ ]*' expo.log)
-              break
+            if grep -q "Tunnel ready" expo.log; then
+              manifest=$(curl -sS http://localhost:8081/ 2>/dev/null || true)
+              host=$(printf '%s' "$manifest" | jq -r '.extra.expoClient.hostUri // empty' 2>/dev/null || true)
+              if [ -n "$host" ] && [ "$host" != "null" ]; then
+                url="exp://$host"
+                break
+              fi
             fi
             if ! kill -0 "$expo_pid" 2>/dev/null; then
               echo "expo start exited early. Full log:"
