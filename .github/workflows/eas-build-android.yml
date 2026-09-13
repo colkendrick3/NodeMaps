@@ -1,0 +1,45 @@
+name: EAS Build (Android)
+
+# Manually run this from the Actions tab to build a real, installable
+# Android .apk on Expo's own build servers -- no Expo Go, no tunnel, no
+# GitHub Actions runner staying alive for the build itself (the runner
+# just submits the job and waits for the result).
+#
+# One-time setup required before this works (see CLAUDE.md / repo docs):
+#   1. Locally or in a Codespace: `npx eas-cli login` then `npx eas-cli init`
+#      -- links this project to your Expo account and writes
+#      extra.eas.projectId into app.json. Commit and push that change.
+#   2. Create an Expo access token at
+#      https://expo.dev/accounts/<you>/settings/access-tokens and add it
+#      as a repository secret named EXPO_TOKEN (Settings > Secrets and
+#      variables > Actions).
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "EAS build profile (see eas.json)"
+        required: false
+        default: "preview"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install EAS CLI
+        run: npm install --no-save eas-cli
+
+      - name: Build on EAS
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npx eas-cli build --platform android --profile "${{ github.event.inputs.profile }}" --non-interactive --wait
