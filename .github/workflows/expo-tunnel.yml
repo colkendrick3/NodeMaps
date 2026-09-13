@@ -1,0 +1,91 @@
+name: Expo Tunnel Preview
+
+# Manually run this from the Actions tab to get an exp:// URL for Expo Go
+# without needing a local machine or a Codespace terminal. The job starts
+# `expo start --tunnel`, prints the resulting exp:// URL to the log, then
+# keeps the tunnel open for the requested duration so Expo Go can keep
+# fetching the bundle while you're using the app.
+
+on:
+  workflow_dispatch:
+    inputs:
+      duration_minutes:
+        description: "Minutes to keep the tunnel open (max 180)"
+        required: false
+        default: "30"
+
+jobs:
+  tunnel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 200
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install tunnel support
+        run: npm install --no-save "@expo/ngrok@^4.1.0"
+
+      - name: Start tunnel and print the Expo Go URL
+        run: |
+          set -e
+
+          duration_minutes="${{ github.event.inputs.duration_minutes }}"
+          duration_minutes="${duration_minutes:-30}"
+          if [ "$duration_minutes" -gt 180 ]; then
+            duration_minutes=180
+          fi
+          duration_seconds=$((duration_minutes * 60))
+
+          npx expo start --tunnel > expo.log 2>&1 &
+          expo_pid=$!
+
+          echo "Waiting for the tunnel to come up..."
+          url=""
+          for _ in $(seq 1 60); do
+            if grep -q "exp://" expo.log; then
+              url=$(grep -m1 -o 'exp://[^ ]*' expo.log)
+              break
+            fi
+            if ! kill -0 "$expo_pid" 2>/dev/null; then
+              echo "expo start exited early. Full log:"
+              cat expo.log
+              exit 1
+            fi
+            sleep 5
+          done
+
+          if [ -z "$url" ]; then
+            echo "Timed out waiting for the tunnel URL. Full log:"
+            cat expo.log
+            kill "$expo_pid" 2>/dev/null || true
+            exit 1
+          fi
+
+          echo ""
+          echo "=================================================="
+          echo "  Open this in Expo Go > Enter URL manually:"
+          echo "  $url"
+          echo "=================================================="
+          echo ""
+
+          elapsed=0
+          while [ "$elapsed" -lt "$duration_seconds" ]; do
+            if ! kill -0 "$expo_pid" 2>/dev/null; then
+              echo "expo start exited early. Full log:"
+              cat expo.log
+              exit 1
+            fi
+            sleep 60
+            elapsed=$((elapsed + 60))
+            remaining=$(( (duration_seconds - elapsed) / 60 ))
+            echo "Still running ($remaining min left) — $url"
+          done
+
+          kill "$expo_pid" 2>/dev/null || true
+          echo "Requested duration elapsed; tunnel closed."
