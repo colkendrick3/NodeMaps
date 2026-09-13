@@ -5,7 +5,11 @@ import { WebView } from 'react-native-webview';
 import AlertBanner from '../components/AlertBanner';
 import { useLocation } from '../hooks/useLocation';
 import { useProximityAlerts } from '../hooks/useProximityAlerts';
-import { getCachedCameraNodes, syncCameraNodesForBounds } from '../services/CameraDataService';
+import {
+  getCachedCameraNodes,
+  syncCameraNodesForBounds,
+  AreaTooLargeError,
+} from '../services/CameraDataService';
 import { centerDeltaToBounds } from '../utils/geo';
 import { OSM_TILE_URL_TEMPLATE, INITIAL_MAP_ZOOM } from '../utils/constants';
 import { buildLeafletMapHtml } from '../assets/leafletMapHtml';
@@ -43,7 +47,11 @@ export default function MapScreen() {
       setCameraNodes(refreshed);
       setSyncError(null);
     } catch (err) {
-      setSyncError('Offline — showing cached nodes only');
+      setSyncError(
+        err instanceof AreaTooLargeError
+          ? 'Zoom in to load camera data for this area'
+          : 'Offline — showing cached nodes only'
+      );
     }
   }, []);
 

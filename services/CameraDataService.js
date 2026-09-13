@@ -5,8 +5,23 @@
 // of map coordinates the user is currently viewing — never the user's own
 // GPS fix, never a device identifier, never a history of movement.
 
-import { OVERPASS_ENDPOINT, OVERPASS_MAX_ATTEMPTS, OVERPASS_RETRY_DELAY_MS } from '../utils/constants';
+import {
+  OVERPASS_ENDPOINT,
+  OVERPASS_MAX_ATTEMPTS,
+  OVERPASS_RETRY_DELAY_MS,
+  OVERPASS_MAX_BBOX_DEGREES,
+} from '../utils/constants';
 import { upsertCameraNodes, getCameraNodesInBounds } from './db';
+
+// Thrown instead of attempting a sync when the viewport is too wide to
+// query fairly. Cached nodes are unaffected — callers should treat this
+// distinctly from a real network failure (e.g. prompt to zoom in rather
+// than reporting "offline").
+export class AreaTooLargeError extends Error {}
+
+function boundsSpanDegrees({ minLat, minLon, maxLat, maxLon }) {
+  return Math.max(maxLat - minLat, maxLon - minLon);
+}
 
 function buildOverpassQuery({ minLat, minLon, maxLat, maxLon }) {
   const bbox = `${minLat},${minLon},${maxLat},${maxLon}`;
@@ -57,6 +72,10 @@ async function fetchOverpassElements(query) {
 // before giving up. Throws on failure — caller should fall back to cached
 // data.
 export async function syncCameraNodesForBounds(bounds) {
+  if (boundsSpanDegrees(bounds) > OVERPASS_MAX_BBOX_DEGREES) {
+    throw new AreaTooLargeError('Viewport too large for a live Overpass query');
+  }
+
   const query = buildOverpassQuery(bounds);
 
   let elements;

@@ -16,6 +16,14 @@ export const OVERPASS_ENDPOINT = 'https://overpass-api.de/api/interpreter';
 export const OVERPASS_MAX_ATTEMPTS = 2;
 export const OVERPASS_RETRY_DELAY_MS = 500;
 
+// Above this bbox span (degrees), skip the live Overpass sync entirely.
+// Query latency scales with area, and a wide, zoomed-out viewport is
+// exactly the kind of query the shared, unauthenticated public instance
+// isn't meant for -- it's slow enough to risk timing out, and it's not
+// the "light usage" fair-use spirit this free service depends on.
+// Whatever's already cached for the area still displays.
+export const OVERPASS_MAX_BBOX_DEGREES = 0.08;
+
 // Distance (meters) at which a cached camera node triggers a local alert.
 export const PROXIMITY_THRESHOLD_METERS = 100;
 
