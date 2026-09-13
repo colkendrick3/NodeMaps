@@ -8,7 +8,8 @@ ever leaves the device.
 
 ## Stack
 - Expo SDK 57 (managed workflow), React Native 0.86, React 19.2
-- react-native-maps 1.27 (map rendering — see tile note below)
+- react-native-webview 13.16 rendering a self-contained Leaflet.js map
+  (see tile note below) — not react-native-maps
 - expo-location 57 (foreground + background GPS)
 - @turf/turf 7 (client-side geospatial math)
 - expo-sqlite 57 (local cache of camera nodes)
@@ -27,16 +28,28 @@ ever leaves the device.
    public tagging (crowd-sourced, openly licensed under ODbL). This app
    does not perform its own surveillance-detection or image recognition.
 
-## Known Technical Note for Step 2
-`react-native-maps` does not render OSM *vector* tiles natively — its
-default providers are Google Maps / Apple Maps. To get real OSM tiles there
-are two real options, and Step 2 needs to pick one explicitly:
-- **Raster OSM tiles** via `react-native-maps`'s `<UrlTile>` overlay
-  (simplest, works today, tiles are raster PNGs).
-- **True vector tiles** via `@maplibre/maplibre-react-native` (a different
-  library from `react-native-maps`, heavier setup, needs a config plugin
-  and a custom dev client — will not work in plain Expo Go).
-This file will be updated once Step 2 confirms which path we're taking.
+## Map Rendering: WebView + Leaflet, not react-native-maps
+`react-native-maps`'s `PROVIDER_DEFAULT` renders Google Maps as the base
+layer on Android, which requires a Google Maps API key to show anything —
+and even with an `<UrlTile>` OSM overlay on top, the Google base layer
+still fetches its own tiles from Google's servers underneath, which
+violates Hard Constraint #3 (OSM + Overpass only, no other network
+destinations).
+
+Instead, `screens/MapScreen.js` renders a `react-native-webview` `<WebView>`
+loading a self-contained HTML document (`assets/leafletMapHtml.js`) that
+runs Leaflet.js against OSM raster tiles directly — no native map SDK, no
+API key, no Google network calls. Leaflet's own JS/CSS are vendored as
+base64 data: URIs in `assets/leafletAssets.js` (not fetched from a CDN at
+runtime), so the WebView's only network requests are for OSM tile images.
+Camera nodes and the user's own position are pushed into the page via
+`webviewRef.current.injectJavaScript(...)`; the page reports viewport
+bounds back via `window.ReactNativeWebView.postMessage(...)`.
+
+This works in plain Expo Go (react-native-webview is one of Expo Go's
+bundled native modules) — `@maplibre/maplibre-react-native` (true vector
+tiles) remains the documented fallback if a custom dev client ever becomes
+acceptable, but was not chosen since it would break Expo Go compatibility.
 
 ## Build/Test/Lint (exact commands)
 - `npm run start` — Expo dev server

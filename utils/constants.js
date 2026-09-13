@@ -19,12 +19,6 @@ export const PROXIMITY_CHECK_INTERVAL_MS = 5000;
 // Minimum GPS movement (meters) before a new location update is processed.
 export const LOCATION_DISTANCE_INTERVAL_METERS = 15;
 
-// Dark, high-contrast map style tuned for outdoor visibility.
-export const DARK_MAP_STYLE = [
-  { elementType: 'geometry', stylers: [{ color: '#1d1d1d' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#1d1d1d' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#8a8a8a' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#3c3c3c' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0e1626' }] },
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-];
+// Initial Leaflet zoom level for the map WebView (roughly matches the old
+// 0.05-degree react-native-maps region span).
+export const INITIAL_MAP_ZOOM = 13;
