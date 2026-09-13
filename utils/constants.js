@@ -10,6 +10,20 @@ export const OSM_TILE_URL_TEMPLATE = 'https://tile.openstreetmap.org/{z}/{x}/{y}
 // sent; only a bounding box.
 export const OVERPASS_ENDPOINT = 'https://overpass-api.de/api/interpreter';
 
+// The public Overpass instance is shared/unauthenticated and occasionally
+// flaky (a slow response, a transient rate limit) even for a well-formed
+// query, so a sync is retried once before falling back to cached nodes.
+export const OVERPASS_MAX_ATTEMPTS = 2;
+export const OVERPASS_RETRY_DELAY_MS = 500;
+
+// Above this bbox span (degrees), skip the live Overpass sync entirely.
+// Query latency scales with area, and a wide, zoomed-out viewport is
+// exactly the kind of query the shared, unauthenticated public instance
+// isn't meant for -- it's slow enough to risk timing out, and it's not
+// the "light usage" fair-use spirit this free service depends on.
+// Whatever's already cached for the area still displays.
+export const OVERPASS_MAX_BBOX_DEGREES = 0.08;
+
 // Distance (meters) at which a cached camera node triggers a local alert.
 export const PROXIMITY_THRESHOLD_METERS = 100;
 
@@ -19,12 +33,6 @@ export const PROXIMITY_CHECK_INTERVAL_MS = 5000;
 // Minimum GPS movement (meters) before a new location update is processed.
 export const LOCATION_DISTANCE_INTERVAL_METERS = 15;
 
-// Dark, high-contrast map style tuned for outdoor visibility.
-export const DARK_MAP_STYLE = [
-  { elementType: 'geometry', stylers: [{ color: '#1d1d1d' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#1d1d1d' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#8a8a8a' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#3c3c3c' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0e1626' }] },
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-];
+// Initial Leaflet zoom level for the map WebView (roughly matches the old
+// 0.05-degree react-native-maps region span).
+export const INITIAL_MAP_ZOOM = 13;
