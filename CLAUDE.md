@@ -7,12 +7,12 @@ and alerts the user locally when they are near one. No user location data
 ever leaves the device.
 
 ## Stack
-- Expo SDK 51 (managed workflow), React Native 0.74
-- react-native-maps 1.14 (map rendering — see tile note below)
-- expo-location 17 (foreground + background GPS)
+- Expo SDK 57 (managed workflow), React Native 0.86, React 19.2
+- react-native-maps 1.27 (map rendering — see tile note below)
+- expo-location 57 (foreground + background GPS)
 - @turf/turf 7 (client-side geospatial math)
-- expo-sqlite 14 (local cache of camera nodes)
-- expo-haptics (local proximity alerts)
+- expo-sqlite 57 (local cache of camera nodes)
+- expo-haptics 57 (local proximity alerts)
 
 ## Hard Constraints (do not violate)
 1. **Zero server-side tracking.** No analytics SDK, no crash reporter that
