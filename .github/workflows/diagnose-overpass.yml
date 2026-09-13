@@ -1,0 +1,55 @@
+name: Diagnose Overpass Query
+
+# One-off diagnostic: replicates the exact query
+# services/CameraDataService.js sends to the Overpass API, to check
+# whether "Offline -- showing cached nodes only" in the app is a real
+# service issue (slow/rate-limited/down) or a bug in the query itself.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bbox:
+        description: "minLat,minLon,maxLat,maxLon"
+        required: false
+        default: "33.7240,-84.4130,33.7740,-84.3630"
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Query Overpass with the app's exact query shape
+        run: |
+          IFS=',' read -r min_lat min_lon max_lat max_lon <<< "${{ github.event.inputs.bbox }}"
+          bbox="$min_lat,$min_lon,$max_lat,$max_lon"
+
+          cat > query.txt <<QUERY
+              [out:json][timeout:25];
+              (
+                node["man_made"="surveillance"]($bbox);
+                node["surveillance:type"]($bbox);
+              );
+              out body;
+          QUERY
+
+          echo "Query:"
+          cat query.txt
+          echo ""
+          echo "Requesting..."
+
+          http_code=$(curl -sS -w "%{http_code}" -o response.json \
+            -X POST -H "Content-Type: text/plain" \
+            --data-binary @query.txt \
+            https://overpass-api.de/api/interpreter \
+            --max-time 30)
+
+          echo "HTTP status: $http_code"
+          echo "Response size: $(wc -c < response.json) bytes"
+          echo "Response (first 2000 chars):"
+          head -c 2000 response.json
+          echo ""
+
+          if [ "$http_code" != "200" ]; then
+            echo "Non-200 response -- this is what the app's fetch() would see as response.ok === false."
+            exit 1
+          fi
