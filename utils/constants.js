@@ -10,6 +10,12 @@ export const OSM_TILE_URL_TEMPLATE = 'https://tile.openstreetmap.org/{z}/{x}/{y}
 // sent; only a bounding box.
 export const OVERPASS_ENDPOINT = 'https://overpass-api.de/api/interpreter';
 
+// The public Overpass instance is shared/unauthenticated and occasionally
+// flaky (a slow response, a transient rate limit) even for a well-formed
+// query, so a sync is retried once before falling back to cached nodes.
+export const OVERPASS_MAX_ATTEMPTS = 2;
+export const OVERPASS_RETRY_DELAY_MS = 500;
+
 // Distance (meters) at which a cached camera node triggers a local alert.
 export const PROXIMITY_THRESHOLD_METERS = 100;
 

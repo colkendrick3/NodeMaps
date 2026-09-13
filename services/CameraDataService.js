@@ -5,7 +5,7 @@
 // of map coordinates the user is currently viewing — never the user's own
 // GPS fix, never a device identifier, never a history of movement.
 
-import { OVERPASS_ENDPOINT } from '../utils/constants';
+import { OVERPASS_ENDPOINT, OVERPASS_MAX_ATTEMPTS, OVERPASS_RETRY_DELAY_MS } from '../utils/constants';
 import { upsertCameraNodes, getCameraNodesInBounds } from './db';
 
 function buildOverpassQuery({ minLat, minLon, maxLat, maxLon }) {
@@ -32,10 +32,11 @@ function parseOverpassElements(elements) {
     }));
 }
 
-// Fetches fresh nodes for the given bbox and merges them into the local cache.
-// Throws on network failure — caller should fall back to cached data.
-export async function syncCameraNodesForBounds(bounds) {
-  const query = buildOverpassQuery(bounds);
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchOverpassElements(query) {
   const response = await fetch(OVERPASS_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
@@ -47,7 +48,29 @@ export async function syncCameraNodesForBounds(bounds) {
   }
 
   const json = await response.json();
-  const nodes = parseOverpassElements(json.elements ?? []);
+  return json.elements ?? [];
+}
+
+// Fetches fresh nodes for the given bbox and merges them into the local
+// cache. Retries once after a transient failure (a slow/rate-limited
+// response from the shared public Overpass instance, or a network blip)
+// before giving up. Throws on failure — caller should fall back to cached
+// data.
+export async function syncCameraNodesForBounds(bounds) {
+  const query = buildOverpassQuery(bounds);
+
+  let elements;
+  for (let attempt = 1; attempt <= OVERPASS_MAX_ATTEMPTS; attempt++) {
+    try {
+      elements = await fetchOverpassElements(query);
+      break;
+    } catch (err) {
+      if (attempt === OVERPASS_MAX_ATTEMPTS) throw err;
+      await delay(OVERPASS_RETRY_DELAY_MS);
+    }
+  }
+
+  const nodes = parseOverpassElements(elements);
   await upsertCameraNodes(nodes);
   return nodes;
 }
