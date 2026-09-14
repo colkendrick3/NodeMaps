@@ -54,7 +54,14 @@ function delay(ms) {
 async function fetchOverpassElements(query) {
   const response = await fetch(OVERPASS_ENDPOINT, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
+    // overpass-api.de's fair-use filtering rejects requests with the bare
+    // OkHttp/Android client signature (406 Not Acceptable) unless they
+    // identify themselves and state what response they'll accept.
+    headers: {
+      'Content-Type': 'text/plain',
+      Accept: 'application/json',
+      'User-Agent': 'NodeMap/1.0 (+https://github.com/colkendrick3/NodeMaps)',
+    },
     body: query,
   });
 
