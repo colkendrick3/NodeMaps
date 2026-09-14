@@ -50,7 +50,11 @@ export default function MapScreen() {
       setSyncError(
         err instanceof AreaTooLargeError
           ? 'Zoom in to load camera data for this area'
-          : 'Offline — showing cached nodes only'
+          // TEMPORARY: surfaces the raw error (network failure vs. HTTP
+          // status vs. bad JSON) instead of a generic message, to diagnose
+          // why the Overpass sync is failing on-device. Revert to a plain
+          // "Offline — showing cached nodes only" once diagnosed.
+          : `Sync failed: ${err.message}`
       );
     }
   }, []);
