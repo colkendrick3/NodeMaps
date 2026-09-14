@@ -72,14 +72,21 @@ export function buildLeafletMapHtml({ tileUrlTemplate, initialCenter, initialZoo
       markersLayer.clearLayers();
       nodes.forEach(function (node) {
         var label = escapeHtml(node.surveillanceType || 'Camera');
+        // manufacturer/brand/operator comes straight from OSM's own tags
+        // (see CameraDataService.parseOverpassElements) -- not inferred.
+        var isAxon = /axon/i.test(node.manufacturer || '');
+        var popup =
+          '<div class="node-popup"><strong>' + label + '</strong>' +
+          (node.manufacturer ? '<br/>' + escapeHtml(node.manufacturer) : '') +
+          '<br/>OSM node ' + node.osmId + '</div>';
         L.circleMarker([node.lat, node.lon], {
-          radius: 7,
+          radius: isAxon ? 8 : 7,
           weight: 2,
           color: '#ffffff',
-          fillColor: '#ff6b35',
+          fillColor: isAxon ? '#a855f7' : '#ff6b35',
           fillOpacity: 1,
         })
-          .bindPopup('<div class="node-popup"><strong>' + label + '</strong><br/>OSM node ' + node.osmId + '</div>')
+          .bindPopup(popup)
           .addTo(markersLayer);
       });
     };

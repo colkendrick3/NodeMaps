@@ -17,10 +17,18 @@ export async function getDb() {
       lon REAL NOT NULL,
       surveillance_type TEXT,
       direction TEXT,
+      manufacturer TEXT,
       last_synced_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_camera_lat_lon ON camera_nodes (lat, lon);
   `);
+
+  // Migration for caches created before the manufacturer column existed.
+  const columns = await dbInstance.getAllAsync(`PRAGMA table_info(camera_nodes);`);
+  if (!columns.some((c) => c.name === 'manufacturer')) {
+    await dbInstance.execAsync(`ALTER TABLE camera_nodes ADD COLUMN manufacturer TEXT;`);
+  }
+
   return dbInstance;
 }
 
@@ -30,15 +38,16 @@ export async function upsertCameraNodes(nodes) {
   await db.withTransactionAsync(async () => {
     for (const n of nodes) {
       await db.runAsync(
-        `INSERT INTO camera_nodes (osm_id, lat, lon, surveillance_type, direction, last_synced_at)
-         VALUES (?, ?, ?, ?, ?, ?)
+        `INSERT INTO camera_nodes (osm_id, lat, lon, surveillance_type, direction, manufacturer, last_synced_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(osm_id) DO UPDATE SET
            lat = excluded.lat,
            lon = excluded.lon,
            surveillance_type = excluded.surveillance_type,
            direction = excluded.direction,
+           manufacturer = excluded.manufacturer,
            last_synced_at = excluded.last_synced_at;`,
-        [n.osmId, n.lat, n.lon, n.surveillanceType ?? null, n.direction ?? null, now]
+        [n.osmId, n.lat, n.lon, n.surveillanceType ?? null, n.direction ?? null, n.manufacturer ?? null, now]
       );
     }
   });
@@ -49,7 +58,7 @@ export async function getCameraNodesInBounds(bounds) {
   const db = await getDb();
   const { minLat, minLon, maxLat, maxLon } = bounds;
   const rows = await db.getAllAsync(
-    `SELECT osm_id as osmId, lat, lon, surveillance_type as surveillanceType, direction
+    `SELECT osm_id as osmId, lat, lon, surveillance_type as surveillanceType, direction, manufacturer
      FROM camera_nodes
      WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?;`,
     [minLat, maxLat, minLon, maxLon]

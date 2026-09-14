@@ -44,6 +44,10 @@ function parseOverpassElements(elements) {
       lon: el.lon,
       surveillanceType: el.tags?.['surveillance:type'] ?? el.tags?.['man_made'] ?? 'unknown',
       direction: el.tags?.['camera:direction'] ?? null,
+      // Whatever OSM's own crowd-sourced tagging says made/operates this
+      // node (e.g. "Axon", "Flock Safety") -- not inferred, just read.
+      manufacturer:
+        el.tags?.['manufacturer'] ?? el.tags?.['brand'] ?? el.tags?.['operator'] ?? null,
     }));
 }
 
