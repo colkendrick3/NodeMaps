@@ -33,6 +33,7 @@ export default function MapScreen() {
   const [syncError, setSyncError] = useState(null);
   const { nodesInRange } = useProximityAlerts(location, cameraNodes);
   const webviewRef = useRef(null);
+  const hasCenteredOnUser = useRef(false);
 
   const loadForBounds = useCallback(async (bounds) => {
     // Offline-first: show whatever's cached immediately.
@@ -70,6 +71,17 @@ export default function MapScreen() {
     webviewRef.current?.injectJavaScript(
       `window.setUserLocation(${location.latitude}, ${location.longitude}); true;`
     );
+
+    // The initial view is just a fallback default (Atlanta) -- recenter on
+    // the user's real position as soon as we have a first GPS fix. This
+    // triggers the WebView's moveend -> regionChange -> loadForBounds flow,
+    // so camera data loads for wherever the user actually is.
+    if (!hasCenteredOnUser.current) {
+      hasCenteredOnUser.current = true;
+      webviewRef.current?.injectJavaScript(
+        `window.centerOnUser(${location.latitude}, ${location.longitude}); true;`
+      );
+    }
   }, [location]);
 
   const handleMessage = useCallback(

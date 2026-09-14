@@ -98,6 +98,13 @@ export function buildLeafletMapHtml({ tileUrlTemplate, initialCenter, initialZoo
       }).addTo(map);
     };
 
+    // Recenters the view on a real GPS fix (the initial view is just a
+    // fallback default). Triggers 'moveend' -> postRegion, so the caller
+    // gets a regionChange message and loads camera data for the new area.
+    window.centerOnUser = function (lat, lon) {
+      map.setView([lat, lon], map.getZoom());
+    };
+
     postRegion();
   </script>
 </body>
